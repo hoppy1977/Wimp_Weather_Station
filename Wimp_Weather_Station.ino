@@ -29,8 +29,6 @@
 #include "MPL3115A2.h" //Pressure sensor
 #include "HTU21D.h" //Humidity sensor
 
-//#define ENABLE_LIGHTNING
-
 //SoftwareSerial imp(8, 9); // RX, TX into Imp pin 7
 
 MPL3115A2 myPressure; //Create an instance of the pressure sensor
@@ -43,26 +41,12 @@ const byte WSPEED = 3;
 const byte RAIN = 2;
 const byte STAT1 = 7;
 
-#ifdef ENABLE_LIGHTNING
-const byte LIGHTNING_IRQ = 4; //Not really an interrupt pin, we will catch it in software
-const byte slaveSelectPin = 10; //SS for AS3935
-#endif
-
 // analog I/O pins
 const byte WDIR = A0;
 const byte LIGHT = A1;
 const byte BATT = A2;
 const byte REFERENCE_3V3 = A3;
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
-
-#ifdef ENABLE_LIGHTNING
-#include "AS3935.h" //Lighting dtector
-#include <SPI.h> //Needed for lighting sensor
-
-byte SPItransfer(byte sendByte);
-
-AS3935 AS3935(SPItransfer, slaveSelectPin, LIGHTNING_IRQ);
-#endif
 
 //Global Variables
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -76,10 +60,6 @@ byte minutes_10m; //Keeps track of where we are in wind gust/dir over last 10 mi
 long lastWindCheck = 0;
 volatile long lastWindIRQ = 0;
 volatile byte windClicks = 0;
-
-#ifdef ENABLE_LIGHTNING
-byte lightning_distance = 0;
-#endif
 
 //We need to keep track of the following variables:
 //Wind speed/dir each update (no storage)
@@ -179,10 +159,6 @@ void setup()
 	//Configure the humidity sensor
 	myHumidity.begin();
 
-#ifdef ENABLE_LIGHTNING
-	startLightning(); //Init the lighting sensor
-#endif
-
 	seconds = 0;
 	lastSecond = millis();
 
@@ -254,16 +230,6 @@ void loop()
 		}
 	}
 
-	//Check to see if there's been lighting
-#ifdef ENABLE_LIGHTNING
-	if(digitalRead(LIGHTNING_IRQ) == HIGH)
-	{
-		//We've got something!
-		lightning_distance = readLightning();
-	}
-#endif
-
-
 	//Wait for the imp to ping us with the ! character
 	if(Serial.available())
 	{
@@ -272,13 +238,6 @@ void loop()
 		{
 			reportWeather(); //Send all the current readings out the imp and to its agent for posting to wunderground. Takes 196ms
 			//Serial.print("Pinged!");
-
-#ifdef ENABLE_LIGHTNING
-			//Give imp time to transmit then read any erroneous lightning strike
-			delay(1000); //Give the Imp time to transmit
-			readLightning(); //Clear any readings and forget it
-#endif
-
 		}
 		else if(incoming == '@') //Special character from Imp indicating midnight local time
 		{
@@ -437,8 +396,6 @@ void calcWeather()
 
 	//Calc battery level
 	batt_lvl = get_battery_level();
-
-	//Lightning is checked in the main loop
 }
 
 //Returns the voltage of the light sensor based on the 3.3V rail
@@ -562,12 +519,6 @@ void reportWeather()
 	Serial.print(batt_lvl, 2);
 	Serial.print(",light_lvl=");
 	Serial.print(light_lvl, 2);
-
-#ifdef LIGHTNING_ENABLED
-	Serial.print(",lightning_distance=");
-	Serial.print(lightning_distance);
-#endif
-
 	Serial.print(",");
 	Serial.println("#,");
 
@@ -588,105 +539,3 @@ int averageAnalogRead(int pinToRead)
 
 	return(runningValue);
 }
-
-//The following is for the AS3935 lightning sensor
-#ifdef ENABLE_LIGHTNING
-byte readLightning(void)
-{
-	byte distance = 0;
-
-	//Check to see if we have lightning!
-	if(digitalRead(LIGHTNING_IRQ) == HIGH)
-	{
-		// first step is to find out what caused interrupt
-		// as soon as we read interrupt cause register, irq pin goes low
-		int irqSource = AS3935.interruptSource();
-
-		// returned value is bitmap field, bit 0 - noise level too high, bit 2 - disturber detected, and finally bit 3 - lightning!
-		if (irqSource & 0b0001)
-		{
-			//Serial.println("Noise level too high, try adjusting noise floor");
-		}
-
-		if (irqSource & 0b0100)
-		{
-			//Serial.println("Disturber detected");
-			distance = 64;
-		}
-
-		if (irqSource & 0b1000)
-		{
-			// need to find how far that lightning stroke, function returns approximate distance in kilometers,
-			// where value 1 represents storm in detector's near victinity, and 63 - very distant, out of range stroke
-			// everything in between is just distance in kilometers
-			distance = AS3935.lightningDistanceKm();
-
-			//Serial.print("Lightning: ");
-			//Serial.print(lightning_distance, DEC);
-			//Serial.println(" km");
-
-			//The AS3935 remembers the nearest strike distance. For example 15km away then 10, then overhead all following
-			//distances (10, 20, 30) will instead output as 'Storm overhead, watch out!'. Resetting the chip erases this.
-			lightning_init();
-		}
-	}
-
-	return(distance);
-}
-
-void startLightning(void)
-{
-	pinMode(slaveSelectPin, OUTPUT); // set the slaveSelectPin as an output:
-
-	pinMode(LIGHTNING_IRQ, INPUT_PULLUP); //Set IRQ pin as input
-
-	SPI.begin(); //Start SPI
-
-	SPI.setDataMode(SPI_MODE1); // NB! chip uses SPI MODE1
-
-	SPI.setClockDivider(SPI_CLOCK_DIV16); //Uno 16MHz / 16 = 1MHz
-
-	SPI.setBitOrder(MSBFIRST); // and chip is MSB first
-
-	lightning_init(); //Setup the values for the sensor
-
-	Serial.println("Lightning sensor online");
-}
-
-void lightning_init()
-{
-	AS3935.reset(); // reset all internal register values to defaults
-
-	// if lightning detector can not tune tank circuit to required tolerance,
-	// calibration function will return false
-	if(!AS3935.calibrate())
-	{
-		Serial.println("Tuning out of range, check your wiring, your sensor and make sure physics laws have not changed!");
-	}
-
-	AS3935.setOutdoors(); //The weather station is outdoors
-
-	AS3935.enableDisturbers(); //We want to know if a man-made event happens
-	AS3935.setNoiseFloor(3); //See table 16 of the AS3935 datasheet. 4-6 works. This was found through experimentation.
-
-	//printAS3935Registers();
-}
-
-/*void printAS3935Registers()
-{
-  int noiseFloor = AS3935.getNoiseFloor();
-  int spikeRejection = AS3935.getSpikeRejection();
-  int watchdogThreshold = AS3935.getWatchdogThreshold();
-  Serial.print("Noise floor is: ");
-  Serial.println(noiseFloor, DEC);
-  Serial.print("Spike rejection is: ");
-  Serial.println(spikeRejection, DEC);
-  Serial.print("Watchdog threshold is: ");
-  Serial.println(watchdogThreshold, DEC);
-}*/
-
-byte SPItransfer(byte sendByte)
-{
-	return SPI.transfer(sendByte);
-}
-#endif
