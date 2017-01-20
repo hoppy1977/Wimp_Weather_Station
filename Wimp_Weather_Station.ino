@@ -46,6 +46,8 @@ const byte WDIR = A0;
 const byte LIGHT = A1;
 const byte BATT = A2;
 const byte REFERENCE_3V3 = A3;
+const byte VOLTAGE_SENSOR = A7;
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 //Global Variables
@@ -144,6 +146,7 @@ void setup()
 	pinMode(LIGHT, INPUT);
 	pinMode(BATT, INPUT);
 	pinMode(REFERENCE_3V3, INPUT);
+	pinMode(VOLTAGE_SENSOR, INPUT);
 
 	pinMode(STAT1, OUTPUT);
 
@@ -413,24 +416,16 @@ float get_light_level()
 	return(lightSensor);
 }
 
-//Returns the voltage of the raw pin based on the 3.3V rail
-//The battery can ranges from 4.2V down to around 3.3V
-//This function allows us to ignore what VCC might be (an Arduino plugged into USB has VCC of 4.5 to 5.2V)
-//The weather shield has a pin called RAW (VIN) fed through through two 5% resistors and connected to A2 (BATT):
-//3.9K on the high side (R1), and 1K on the low side (R2)
 float get_battery_level()
 {
-	float operatingVoltage = averageAnalogRead(REFERENCE_3V3);
+	int value = analogRead(VOLTAGE_SENSOR);
 
-	float rawVoltage = averageAnalogRead(BATT);
+	float R1 = 30000.0;
+	float R2 = 7500.0;
+	float vout = (value * 5.0) / 1024.0;
+	float vin = vout / (R2 / (R1 + R2));
 
-	operatingVoltage = 3.30 / operatingVoltage; //The reference voltage is 3.3V
-
-	rawVoltage *= operatingVoltage; //Convert the 0 to 1023 int to actual voltage on BATT pin
-
-	rawVoltage *= 4.90; //(3.9k+1k)/1k - multiply BATT voltage by the voltage divider to get actual system voltage
-
-	return(rawVoltage);
+	return vin;
 }
 
 //Returns the instataneous wind speed
