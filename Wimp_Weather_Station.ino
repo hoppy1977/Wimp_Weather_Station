@@ -39,6 +39,7 @@ HTU21D myHumidity; //Create an instance of the humidity sensor
 // digital I/O pins
 const byte WSPEED = 3;
 const byte RAIN = 2;
+const byte VOLTAGE_RELAY = 4;
 const byte STAT1 = 7;
 
 // analog I/O pins
@@ -148,6 +149,7 @@ void setup()
 	pinMode(REFERENCE_3V3, INPUT);
 	pinMode(VOLTAGE_SENSOR, INPUT);
 
+	pinMode(VOLTAGE_RELAY, OUTPUT);
 	pinMode(STAT1, OUTPUT);
 
 	midnightReset(); //Reset rain totals
@@ -418,7 +420,10 @@ float get_light_level()
 
 float get_battery_level()
 {
+	digitalWrite(VOLTAGE_RELAY, HIGH);
+	delay(100); // Wait for the relay to close
 	int value = analogRead(VOLTAGE_SENSOR);
+	digitalWrite(VOLTAGE_RELAY, LOW);
 
 	float R1 = 30000.0;
 	float R2 = 7500.0;
