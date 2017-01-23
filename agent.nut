@@ -351,42 +351,6 @@ device.on("postToInternet", function(dataString) {
     server.log("Wunderground response = " + response.body);
     server.log(batt_lvl + " " + light_lvl);
 
-    //Get the local time that this measurement was taken
-    local localMeasurementTime = "measurementtime=" + calcLocalTime();
-
-    //Now post to data.sparkfun.com
-    //Here is a list of datums: measurementTime, winddir, windspeedmph, windgustmph, windgustdir, windspdmph_avg2m, winddir_avg2m, windgustmph_10m, windgustdir_10m, humidity, tempf, rainin, dailyrainin, baromin, dewptf, batt_lvl, light_lvl
-
-    //Now we form the large string to pass to sparkfun
-    local strSparkFun = "http://data.sparkfun.com/input/";
-    local privateKey = "private_key=" + sparkfun_privateKey;
-
-    bigString = strSparkFun;
-    bigString += sparkfun_publicKey;
-    bigString += "?" + privateKey;
-    bigString += "&" + localMeasurementTime;
-    bigString += "&" + winddir;
-    bigString += "&" + windspeedmph;
-    bigString += "&" + windgustmph;
-    bigString += "&" + windgustdir;
-    bigString += "&" + windspdmph_avg2m;
-    bigString += "&" + winddir_avg2m;
-    bigString += "&" + windgustmph_10m;
-    bigString += "&" + windgustdir_10m;
-    bigString += "&" + humidity;
-    bigString += "&" + tempf;
-    bigString += "&" + rainin;
-    bigString += "&" + dailyrainin;
-    bigString += "&" + baromin;
-    bigString += "&" + dewptf;
-    bigString += "&" + batt_lvl;
-    bigString += "&" + light_lvl;
-    
-    //Push to SparkFun
-    local request = http.get(bigString);
-    local response = request.sendsync();
-    server.log("SparkFun response = " + response.body);
-
     //Check to see if we need to send a midnight reset
     checkMidnight(1);
 
