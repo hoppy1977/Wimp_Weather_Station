@@ -14,9 +14,6 @@
 local STATION_ID = "KCOBOULD95";
 local STATION_PW = "password"; //Note that you must only use alphanumerics in your password. Http post won't work otherwise.
 
-local sparkfun_publicKey = "dZ4EVmE8yGCRGx5XRX1W";
-local sparkfun_privateKey = "privatekey";
-
 local LOCAL_ALTITUDE_METERS = 1638; //Accurate for the roof on my house
 
 local midnightReset = false; //Keeps track of a once per day cumulative rain reset
