@@ -41,6 +41,11 @@ LINK <- hardware.pin8;
 LINK.configure(DIGITAL_OUT);
 LINK.write(1);
 
+// Pin 2 is used to turn the modem on or off
+MODEM <- hardware.pin2;
+MODEM.configure(DIGITAL_OUT);
+MODEM.write(1);
+
 // Sequence number
 __seq <- 0x28;
 
@@ -359,8 +364,14 @@ function checkWeather() {
 
     ACTIVITY.write(1); //TX LED off
 
+    MODEM.write(1); // Turn the modem on
+    imp.sleep(30); // Give the modem time to initialise
+
     // Send info to agent, that will in turn push to internet
     agent.send("postToInternet", incomingStream);
+    
+    imp.sleep(10); // Give the modem time to send the data
+    MODEM.write(0); // Turn the modem off
     
     //imp.wakeup(10.0, checkWeather);
 }
@@ -377,6 +388,6 @@ checkWeather();
 //Power down the imp to low power mode, then wake up after 10 seconds
 //Wunderground has a minimum of 2.5 seconds between Rapidfire reports
 imp.onidle(function() {
-  server.log("Nothing to do, going to sleep for 60 seconds");
-  server.sleepfor(60);
+  server.log("Nothing to do, going to sleep for 300 seconds");
+  server.sleepfor(300);
 });
