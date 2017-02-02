@@ -40,6 +40,7 @@ HTU21D myHumidity; //Create an instance of the humidity sensor
 const byte WSPEED = 3;
 const byte RAIN = 2;
 const byte VOLTAGE_RELAY = 14;
+const byte MODEM_RELAY = 15;
 const byte STAT1 = 7;
 
 // analog I/O pins
@@ -150,6 +151,7 @@ void setup()
 	pinMode(VOLTAGE_SENSOR, INPUT);
 
 	pinMode(VOLTAGE_RELAY, OUTPUT);
+	pinMode(MODEM_RELAY, OUTPUT);
 	pinMode(STAT1, OUTPUT);
 
 	midnightReset(); //Reset rain totals
@@ -309,6 +311,12 @@ void displayArrays()
 //When the imp tells us it's midnight, reset the total amount of rain and gusts
 void midnightReset()
 {
+	// First turn the modem off and on again
+	// We do this every day to ensure the connection does not get stale
+	digitalWrite(MODEM_RELAY, HIGH);
+	delay(10000); // Wait for the modem to power-down
+	digitalWrite(MODEM_RELAY, LOW);
+
 	dailyrainin = 0; //Reset daily amount of rain
 
 	windgustmph = 0; //Zero out the windgust for the day
