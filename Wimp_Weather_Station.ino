@@ -421,7 +421,7 @@ float get_light_level()
 float get_battery_level()
 {
 	digitalWrite(VOLTAGE_RELAY, HIGH);
-	delay(100); // Wait for the relay to close
+	delay(100); // Wait for the relay to actuate
 	int value = analogRead(VOLTAGE_SENSOR);
 	digitalWrite(VOLTAGE_RELAY, LOW);
 
