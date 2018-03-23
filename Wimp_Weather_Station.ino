@@ -39,8 +39,8 @@ HTU21D myHumidity; //Create an instance of the humidity sensor
 // digital I/O pins
 const byte WSPEED = 3;
 const byte RAIN = 2;
-const byte VOLTAGE_RELAY = 14;
-const byte MODEM_RELAY = 15;
+const byte VOLTAGE_RELAY = 12;
+const byte MODEM_RELAY = 13;
 const byte STAT1 = 7;
 
 // analog I/O pins
