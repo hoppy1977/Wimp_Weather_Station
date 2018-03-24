@@ -450,37 +450,10 @@ function calcLocalTime()
 {
     //Get the time that this measurement was taken
     local currentTime = date(time(), 'u');
+    
+    server.log("currentTime: " + currentTime);
+    
     local hour = currentTime.hour; //Most of the work will be on the current hour
-
-    //Since 2007 DST starts on the second Sunday in March and ends the first Sunday of November
-    //Let's just assume it's going to be this way for awhile (silly US government!)
-    //Example from: http://stackoverflow.com/questions/5590429/calculating-daylight-savings-time-from-only-date
-    
-    //The Imp .month returns 0-11. DoW expects 1-12 so we add one.
-    local month = currentTime.month + 1;
-    
-    local DoW = day_of_week(currentTime.year, month, currentTime.day); //Get the day of the week. 0 = Sunday, 6 = Saturday
-    local previousSunday = currentTime.day - DoW;
-
-    local dst = false; //Assume we're not in DST
-    if(month > 3 && month < 11) dst = true; //DST is happening!
-
-    //In March, we are DST if our previous Sunday was on or after the 8th.
-    if (month == 3)
-    {
-        if(previousSunday >= 8) dst = true; 
-    } 
-    //In November we must be before the first Sunday to be dst.
-    //That means the previous Sunday must be before the 1st.
-    if(month == 11)
-    {
-        if(previousSunday <= 0) dst = true;
-    }
-
-    if(dst == true)
-    {
-        hour++; //If we're in DST add an extra hour
-    }
 
     //Convert UTC hours to local current time using local_hour
     if(hour < local_hour_offset)
@@ -498,85 +471,4 @@ function calcLocalTime()
     currentTime = format("%02d", hour) + "%3A" + format("%02d", currentTime.min) + "%3A" + format("%02d", currentTime.sec) + "%20" + AMPM;
     //server.log("Local time: " + currentTime);
     return(currentTime);
-}
-
-//Given the current year/month/day
-//Returns 0 (Sunday) through 6 (Saturday) for the day of the week
-//Assumes we are operating in the 2000-2099 century
-//From: http://en.wikipedia.org/wiki/Calculating_the_day_of_the_week
-function day_of_week(year, month, day)
-{
-
-  //offset = centuries table + year digits + year fractional + month lookup + date
-  local centuries_table = 6; //We assume this code will only be used from year 2000 to year 2099
-  local year_digits;
-  local year_fractional;
-  local month_lookup;
-  local offset;
-
-  //Example Feb 9th, 2011
-
-  //First boil down year, example year = 2011
-  year_digits = year % 100; //year_digits = 11
-  year_fractional = year_digits / 4; //year_fractional = 2
-
-  switch(month) {
-  case 1: 
-    month_lookup = 0; //January = 0
-    break; 
-  case 2: 
-    month_lookup = 3; //February = 3
-    break; 
-  case 3: 
-    month_lookup = 3; //March = 3
-    break; 
-  case 4: 
-    month_lookup = 6; //April = 6
-    break; 
-  case 5: 
-    month_lookup = 1; //May = 1
-    break; 
-  case 6: 
-    month_lookup = 4; //June = 4
-    break; 
-  case 7: 
-    month_lookup = 6; //July = 6
-    break; 
-  case 8: 
-    month_lookup = 2; //August = 2
-    break; 
-  case 9: 
-    month_lookup = 5; //September = 5
-    break; 
-  case 10: 
-    month_lookup = 0; //October = 0
-    break; 
-  case 11: 
-    month_lookup = 3; //November = 3
-    break; 
-  case 12: 
-    month_lookup = 5; //December = 5
-    break; 
-  default: 
-    month_lookup = 0; //Error!
-    return(-1);
-  }
-
-  offset = centuries_table + year_digits + year_fractional + month_lookup + day;
-  //offset = 6 + 11 + 2 + 3 + 9 = 31
-  offset %= 7; // 31 % 7 = 3 Wednesday!
-
-  return(offset); //Day of week, 0 to 6
-
-  //Example: May 11th, 2012
-  //6 + 12 + 3 + 1 + 11 = 33
-  //5 = Friday! It works!
-
-   //Devised by Tomohiko Sakamoto in 1993, it is accurate for any Gregorian date:
-   /*t <- [ 0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-   if(month < 3) year--;
-   //year = month < 3;
- return (year + year/4 - year/100 + year/400 + t[month-1] + day) % 7;
-   //return 4;
-   */
 }
