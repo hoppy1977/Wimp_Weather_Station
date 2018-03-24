@@ -408,27 +408,6 @@ function checkMidnight(ignore) {
     }
 }
     
-//Recording to a google doc is a bit tricky. Many people have found ways of posting
-//to a google form to get data into a spreadsheet. This requires a https connection
-//so we use pushingbox to handle the secure connection.
-//See http://productforums.google.com/forum/#!topic/docs/f4hJKF1OQOw for more info
-//To push two items I had to use a GET instead of a post
-function recordLevels(batt, light) {
-    
-    //Smash it all together
-    local stringToSend = "http://api.pushingbox.com/pushingbox?devid=vB0A3446EBB4828F";
-    stringToSend = stringToSend + "&" + batt; 
-    stringToSend = stringToSend + "&" + light;
-    //server.log("string to send: " + stringToSend); //Debugging
-    
-    //Push to internet
-    local request = http.post(stringToSend, {}, "");
-    local response = request.sendsync();
-    //server.log("Google response=" + response.body);
-    
-    server.log("Post to spreadsheet complete.")
-}
-
 //Given pressure in pascals, convert the pressure to Altimeter Setting, inches mercury
 function convertToInHg(pressure_Pa)
 {
