@@ -11,6 +11,13 @@
 // Example incoming serial string from device: 
 // $,winddir=270,windspeedmph=0.0,windgustmph=0.0,windgustdir=0,windspdmph_avg2m=0.0,winddir_avg2m=12,windgustmph_10m=0.0,windgustdir_10m=0,humidity=998.0,tempf=-1766.2,rainin=0.00,dailyrainin=0.00,pressure=-999.00,batt_lvl=16.11,light_lvl=3.32,#
 
+#require "Loggly.class.nut:1.1.0"
+
+loggly <- Loggly("07f1e276-be34-4987-9864-10b907d5168a",
+{
+    "tags" : "argus_midnight_reset"
+});
+
 local STATION_ID = "IVICTORI1278";
 local STATION_PW = "<password>"; //Note that you must only use alphanumerics in your password. Http post won't work otherwise.
 
@@ -395,13 +402,29 @@ function checkMidnight(ignore) {
 
     //Get the local time that this measurement was taken
     local localTime = calcLocalTime(); 
-    
+
+    server.log("checkMidnight");
+    loggly.log(
+        {
+            "msg" : "Checking for midnight",
+            "localHour" : format("%c", localTime[0]) + format("%c", localTime[1]),
+            "situation" : "midnightCheck"
+        });
+
     //server.log("Local hour = " + format("%c", localTime[0]) + format("%c", localTime[1]));
 
     if(localTime[0].tochar() == "0" && localTime[1].tochar() == "4")
     {
         if(midnightReset == false)
         {
+            loggly.log(
+                {
+                    "msg" : "Sending midnight reset",
+                    "localHour" : format("%c", localTime[0]) + format("%c", localTime[1]),
+                    "situation" : "midnightReset"
+                });
+            
+            server.log("Local hour = " + format("%c", localTime[0]) + format("%c", localTime[1]));
             server.log("Sending midnight reset");
             midnightReset = true; //We should only reset once
             device.send("sendMidnightReset", 1);
