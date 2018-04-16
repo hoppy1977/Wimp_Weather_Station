@@ -469,9 +469,9 @@ int get_wind_direction()
 
 	adc = averageAnalogRead(WDIR); // get the current reading from the sensor
 
-	Serial.println();
-	Serial.print("WindDirectionVoltage: ");
-	Serial.println(adc);
+	//Serial.println();
+	//Serial.print("WindDirectionVoltage: ");
+	//Serial.println(adc);
 
 	// The following table is ADC readings for the wind direction sensor output, sorted from low to high.
 	// Each threshold is the midpoint between adjacent headings. The output is degrees for that ADC reading.
@@ -482,85 +482,71 @@ int get_wind_direction()
 	if (adc < 380)
 	{
 		windDirection = 113;
-		return (windDirection);
 	}
-	if (adc < 393)
+	else if (adc < 393)
 	{
 		windDirection = 68;
-		return (windDirection);
 	}
-	if (adc < 414)
+	else if (adc < 414)
 	{
 		windDirection = 90;
-		return (windDirection);
 	}
-	if (adc < 456)
+	else if (adc < 456)
 	{
 		windDirection = 158;
-		return (windDirection);
 	}
-	if (adc < 508)
+	else if (adc < 508)
 	{
 		windDirection = 135;
-		return (windDirection);
 	}
-	if (adc < 551)
+	else if (adc < 551)
 	{
 		windDirection = 203;
-		return (windDirection);
 	}
-	if (adc < 615)
+	else if (adc < 615)
 	{
 		windDirection = 180;
-		return (windDirection);
 	}
-	if (adc < 680)
+	else if (adc < 680)
 	{
 		windDirection = 23;
-		return (windDirection);
 	}
-	if (adc < 746)
+	else if (adc < 746)
 	{
 		windDirection = 45;
-		return (windDirection);
 	}
-	if (adc < 801)
+	else if (adc < 801)
 	{
 		windDirection = 248;
-		return (windDirection);
 	}
-	if (adc < 833)
+	else if (adc < 833)
 	{
 		windDirection = 225;
-		return (windDirection);
 	}
-	if (adc < 878)
+	else if (adc < 878)
 	{
 		windDirection = 338;
-		return (windDirection);
 	}
-	if (adc < 913)
+	else if (adc < 913)
 	{
 		windDirection = 0;
-		return (windDirection);
 	}
-	if (adc < 940)
+	else if (adc < 940)
 	{
 		windDirection = 293;
-		return (windDirection);
 	}
-	if (adc < 967)
+	else if (adc < 967)
 	{
 		windDirection = 315;
-		return (windDirection);
 	}
-	if (adc < 990)
+	else if (adc < 990)
 	{
 		windDirection = 270;
-		return (windDirection);
 	}
-
-	windDirection = -1; // error, disconnected?
+	else
+	{
+		windDirection = -1; // error, disconnected?
+	}
 
 	Serial.println();
 	Serial.print("WindDirection: ");
