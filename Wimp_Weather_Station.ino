@@ -26,8 +26,8 @@
 
 #include <avr/wdt.h> //We need watch dog for this program
 #include <Wire.h> //I2C needed for sensors
-#include "MPL3115A2.h" //Pressure sensor
-#include "HTU21D.h" //Humidity sensor
+#include "src/MPL3115A2/SparkFunMPL3115A2.h" //Pressure sensor
+#include "src/HTU21D/SparkFunHTU21D.h" //Humidity sensor
 
 //SoftwareSerial imp(8, 9); // RX, TX into Imp pin 7
 
