@@ -9,7 +9,6 @@
 //          If you find it handy, and we meet some day, you can buy me a beer or iced tea in return.
 
 
-
 local rxLEDToggle = 1;  // These variables keep track of rx/tx LED toggling status
 local txLEDToggle = 1;
 
@@ -18,7 +17,7 @@ local NOCHAR = -1;
 //---------------------------------------------
 //Everything below is used for bootloading
 
-server.log("Device started, impee_id " + hardware.getimpeeid() + " and mac = " + imp.getmacaddress() );
+//server.log("Device started, impee_id " + hardware.getimpeeid() + " and mac = " + imp.getmacaddress() );
 
 //------------------------------------------------------------------------------------------------------------------------------
 // Uart57 for TX/RX
@@ -293,6 +292,7 @@ function toggleRxLED()
 //This resets the cumulative rain and other daily variables
 agent.on("sendMidnightReset", function(ignore) {
     server.log("Device midnight reset");
+    //SERIAL.flush();
     SERIAL.write("@"); //Special midnight command
 });
 
@@ -374,9 +374,17 @@ SERIAL.configure(9600, 8, PARITY_NONE, 1, NO_CTSRTS); // 9600 baud worked well, 
 // Start this party going!
 checkWeather();
 
-//Power down the imp to low power mode, then wake up after 300 seconds
-//Wunderground has a minimum of 2.5 seconds between Rapidfire reports
-imp.onidle(function() {
-  server.log("Nothing to do, going to sleep for 5 minutes");
-  server.sleepfor(300);
+// Approach to fixing midnightReset suggested here:
+// https://learn.sparkfun.com/tutorials/weather-station-wirelessly-connected-to-wunderground/discuss
+server.log("Go idle for 60 seconds then sleep.");
+imp.wakeup(60.0, function(){
+    server.log("Nothing to do, going to sleep for 5 minutes");
+    server.sleepfor(300);
 });
+
+//Power down the imp to low power mode, then wake up after 60 seconds
+//Wunderground has a minimum of 2.5 seconds between Rapidfire reports
+// imp.onidle(function() {
+//  server.log("Nothing to do, going to sleep for 5 minutes");
+//  server.sleepfor(300);
+//});
