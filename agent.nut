@@ -11,12 +11,6 @@
 // Example incoming serial string from device: 
 // $,winddir=270,windspeedmph=0.0,windgustmph=0.0,windgustdir=0,windspdmph_avg2m=0.0,winddir_avg2m=12,windgustmph_10m=0.0,windgustdir_10m=0,humidity=998.0,tempf=-1766.2,rainin=0.00,dailyrainin=0.00,pressure=-999.00,batt_lvl=16.11,light_lvl=3.32,#
 
-#require "Loggly.class.nut:1.1.0"
-
-loggly <- Loggly("07f1e276-be34-4987-9864-10b907d5168a",
-{
-    "tags" : "argus_midnight_reset"
-});
 
 local STATION_ID = "IVICTORI1278";
 local STATION_PW = "<password>"; //Note that you must only use alphanumerics in your password. Http post won't work otherwise.
@@ -25,7 +19,7 @@ local LOCAL_ALTITUDE_METERS = 560; // Value from Wunderground
 
 local midnightReset = false; //Keeps track of a once per day cumulative rain reset
 
-local local_hour_offset = 11;
+local local_hour_offset = 10;
 
 const MAX_PROGRAM_SIZE = 0x20000;
 const ARDUINO_BLOB_SIZE = 128;
@@ -93,7 +87,7 @@ function send_program() {
         }
         device.send("burn", {last=true});
     }
-}        
+}
 
 //------------------------------------------------------------------------------------------------------------------------------
 // Parse the hex into an array of blobs
@@ -239,9 +233,9 @@ device.on("ready", function(ready) {
 
 // When we hear something from the device, split it apart and post it
 device.on("postToInternet", function(dataString) {
-    
-    //server.log("Incoming: " + dataString);
-    
+
+    server.log("postToInternet - dataString: " + dataString);
+
     //Break the incoming string into pieces by comma
     a <- mysplit(dataString,',');
 
@@ -251,9 +245,8 @@ device.on("postToInternet", function(dataString) {
         server.log(format("Received: %s)", dataString));
         return(0);
     }
-    
+
     //Pull the various bits from the blob
-    
     //a[0] is $
     local winddir = a[1];
     local windspeedmph = a[2];
@@ -271,9 +264,9 @@ device.on("postToInternet", function(dataString) {
     local batt_lvl = a[14];
     local light_lvl = a[15];
     //a[16] is #
-    
+
     server.log(tempf);
-    
+
     //Correct for the actual orientation of the weather station
     //For my station the north indicator is pointing due west
     winddir = windCorrect(winddir);
@@ -301,7 +294,7 @@ device.on("postToInternet", function(dataString) {
 
     //Turn Pascal pressure into baromin (Inches Mercury at Altimeter Setting)
     local baromin = "baromin=" + convertToInHg(pressure);
-    
+
     //Calculate a dew point
     currentHumidity <- mysplit(humidity, '=');
     currentTempF <- mysplit(tempf, '=');
@@ -315,7 +308,7 @@ device.on("postToInternet", function(dataString) {
 
     //Form the current date/time
     //Note: .month is 0 to 11!
-    local currentTime = date(time(), 'u');
+    local currentTime = date();
     local strCT = "dateutc=";
     strCT += currentTime.year + "-" + format("%02d", currentTime.month + 1) + "-" + format("%02d", currentTime.day);
     strCT += "+" + format("%02d", currentTime.hour) + "%3A" + format("%02d", currentTime.min) + "%3A" + format("%02d", currentTime.sec);
@@ -347,8 +340,6 @@ device.on("postToInternet", function(dataString) {
     bigString += "&" + "rtfreq=10"; //Set rapid fire freq to once every 10 seconds
     bigString += "&" + "action=updateraw";
 
-    //server.log("string to send: " + bigString);
-    
     //Push to Wunderground
     local request = http.post(bigString, {}, "");
     local response = request.sendsync();
@@ -369,10 +360,10 @@ function windCorrect(direction) {
     //My station's North arrow is pointing due west
     //So correct by 90 degrees
     //local dir = temp[1].tointeger() - 90;
-    
+
     // No correction required
     local dir = temp[1].tointeger();
-    
+
     if(dir < 0) dir += 360;
     return(temp[0] + "=" + dir);
 }
@@ -387,7 +378,7 @@ function calcDewPoint(relativeHumidity, tempF) {
     local N = 237.3 + tempC;
     local B = (L + (M / N)) / 17.27;
     local dewPoint = (237.3 * B) / (1.0 - B);
-    
+
     //Result is in C
     //Convert back to F
     dewPoint = dewPoint * 9 / 5.0 + 32;
@@ -398,43 +389,31 @@ function calcDewPoint(relativeHumidity, tempF) {
 }
 
 function checkMidnight(ignore) {
-    //Check to see if it's midnight. If it is, send @ to Arduino to reset time based variables
+//Check to see if it's midnight. If it is, send @ to Arduino to reset time based variables
+
+    server.log("checkMidnight");
 
     //Get the local time that this measurement was taken
     local localTime = calcLocalTime(); 
+    server.log("Local hour = " + format("%c", localTime[0]) + format("%c", localTime[1]));
 
-    server.log("checkMidnight");
-    loggly.log(
-        {
-            "msg" : "Checking for midnight",
-            "localHour" : format("%c", localTime[0]) + format("%c", localTime[1]),
-            "situation" : "midnightCheck"
-        });
-
-    //server.log("Local hour = " + format("%c", localTime[0]) + format("%c", localTime[1]));
-
-    if(localTime[0].tochar() == "0" && localTime[1].tochar() == "4")
+    // If the time is '00:xx' we are past midnight
+    if(localTime[0].tochar() == "0" && localTime[1].tochar() == "0")
     {
         if(midnightReset == false)
         {
-            loggly.log(
-                {
-                    "msg" : "Sending midnight reset",
-                    "localHour" : format("%c", localTime[0]) + format("%c", localTime[1]),
-                    "situation" : "midnightReset"
-                });
-            
             server.log("Local hour = " + format("%c", localTime[0]) + format("%c", localTime[1]));
             server.log("Sending midnight reset");
             midnightReset = true; //We should only reset once
             device.send("sendMidnightReset", 1);
         }
     }
-    else {
+    else
+    {
         midnightReset = false; //Reset our state
     }
 }
-    
+
 //Given pressure in pascals, convert the pressure to Altimeter Setting, inches mercury
 function convertToInHg(pressure_Pa)
 {
@@ -476,26 +455,21 @@ function mysplit(a, b) {
 function calcLocalTime()
 {
     //Get the time that this measurement was taken
-    local currentTime = date(time(), 'u');
-    
-    server.log("currentTime: " + currentTime);
-    
-    local hour = currentTime.hour; //Most of the work will be on the current hour
+    local utcTime = date();
+    server.log("utcTime: " + utcTime);
+
+    local hour = utcTime.hour; //Most of the work will be on the current hour
+    server.log("hour: " + hour);
+
+    server.log("local_hour_offset: " + local_hour_offset);
 
     //Convert UTC hours to local current time using local_hour
-    if(hour < local_hour_offset)
-        hour += 24; //Add 24 hours before subtracting local offset
-    hour -= local_hour_offset;
-    
-    local AMPM = "AM";
-    if(hour > 12)
-    {
-        hour -= 12; //Get rid of military time
-        AMPM = "PM";
-    }
-    if(hour == 0) hour = 12; //Midnight edge case
+    hour += local_hour_offset;
+    if(hour >= 24)
+        hour -= 24; //Add 24 hours
 
-    currentTime = format("%02d", hour) + "%3A" + format("%02d", currentTime.min) + "%3A" + format("%02d", currentTime.sec) + "%20" + AMPM;
-    //server.log("Local time: " + currentTime);
-    return(currentTime);
+    local localTime = format("%02d", hour) + "%3A" + format("%02d", utcTime.min) + "%3A" + format("%02d", utcTime.sec);
+    server.log("Local time: " + localTime);
+
+    return(localTime);
 }
