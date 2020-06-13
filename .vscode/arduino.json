@@ -1,5 +1,6 @@
 {
     "board": "arduino:avr:mega",
     "configuration": "cpu=atmega2560",
-    "sketch": "Wimp_Weather_Station.ino"
+    "sketch": "Wimp_Weather_Station.ino",
+    "port": "COM13"
 }
