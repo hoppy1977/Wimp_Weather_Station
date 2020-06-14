@@ -378,8 +378,8 @@ checkWeather();
 // https://learn.sparkfun.com/tutorials/weather-station-wirelessly-connected-to-wunderground/discuss
 server.log("Go idle for 60 seconds then sleep.");
 imp.wakeup(60.0, function(){
-    server.log("Nothing to do, going to sleep for 5 minutes");
-    server.sleepfor(300);
+    server.log("Nothing to do, going to sleep for 4 minutes");
+    server.sleepfor(240);
 });
 
 //Power down the imp to low power mode, then wake up after 60 seconds
